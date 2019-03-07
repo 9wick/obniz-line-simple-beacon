@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Obniz LINE Simple Beacon Example</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script src="https://unpkg.com/obniz@2.0.1/obniz.js"></script>
+  <script src="../index.js"></script>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+</head>
+<body>
+
+<div id="obniz-debug">
+  <div id="online-status"
+       style="color: rgb(255, 255, 255); padding: 5px; text-align: center; background-color: rgb(217, 83, 79);">offline
+  </div>
+</div>
+<div class="container">
+  <div class="row mt-3">
+
+    <div class="col-12 ">
+      <div class="input-group mb-3">
+        <div class="input-group-prepend">
+          <span class="input-group-text">obniz ID</span>
+        </div>
+        <input type="text" id="obniz_id" class="form-control" placeholder="XXXX-XXXX">
+      </div>
+
+    </div>
+    <div class="col-12 ">
+      <div class="input-group mb-3">
+        <div class="input-group-prepend">
+          <span class="input-group-text">LINE Hardware ID</span>
+        </div>
+        <input type="text" id="hardware_id" class="form-control" placeholder="0116cbf379" value="0116cbf379">
+      </div>
+
+    </div>
+    <div class="col-12">
+      <div class="input-group mb-3">
+        <div class="input-group-prepend">
+          <span class="input-group-text">Device Message</span>
+        </div>
+        <input type="text" id="device_message" class="form-control" placeholder="0x01, 0x02, 0x10"
+               value="0x01, 0x02, 0x10">
+      </div>
+
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col">
+      <button id="start_btn" class="btn btn-primary">Start</button>
+      <button id="stop_btn" class="btn btn-outline-secondary" disabled>Stop</button>
+    </div>
+  </div>
+
+
+  <div class="row mt-5">
+    <div class="col">
+      <h3>Log</h3>
+      <div id="log"></div>
+    </div>
+  </div>
+</div>
+
+
+<script type="text/javascript">
+
+  var obniz;
+  document.querySelector("#start_btn").onclick = () => {
+
+    var obnizId = document.querySelector("#obniz_id").value;
+    var hardwareId = document.querySelector("#hardware_id").value;
+    var deviceMessage = string2array(document.querySelector("#device_message").value);
+
+    log("obniz id : " + obnizId);
+    log("hardwareId : " + hardwareId);
+    log("deviceMessage : " + array2string(deviceMessage));
+
+    obniz = new Obniz(obnizId);
+    log("connecting to obniz", "blue");
+    obniz.onconnect = async () => {
+      log("connected", "blue");
+      try {
+        let beacon = new ObnizLineBeacon(obniz, {deviceMessage, hardwareId});
+        beacon.start();
+        log("Start beacon", "blue");
+        obniz.display.clear();
+        obniz.display.print("LINE Beacon");
+        obniz.display.print("Sending");
+      } catch (err) {
+        log(err, "red");
+      }
+    };
+
+    document.querySelector("#start_btn").disabled = true;
+    document.querySelector("#stop_btn").disabled = false;
+  };
+
+
+  document.querySelector("#stop_btn").onclick = () => {
+    if (obniz) {
+      log("Stop beacon and disconnect obniz", "blue");
+      obniz.close();
+      obniz = undefined;
+
+    }
+
+    document.querySelector("#start_btn").disabled = false;
+    document.querySelector("#stop_btn").disabled = true;
+  };
+
+
+  function log(msg, color = "#000") {
+    var html = `<span style='color:${color}'>${msg}</span><br/>`;
+    document.querySelector("#log").innerHTML += html;
+  }
+
+
+  function string2array(dataString) {
+    let dataArray = [];
+    if (dataString.indexOf(",") >= 0) {
+      dataArray = dataString.trim().split(",").map((e) => {
+        return e.trim()
+      }).filter((e) => {
+        return e.length > 0;
+      });
+    } else {
+      dataArray = dataString.trim().split(" ").map((e) => {
+        return e.trim()
+      }).filter((e) => {
+        return e.length > 0;
+      });
+    }
+
+    dataArray = dataArray.map((e) => {
+      return parseInt(e, 16);
+    });
+
+    return dataArray;
+  }
+
+  function array2string(arr) {
+    if (!arr || !Array.isArray(arr)) {
+      return "undefined";
+    }
+    if (arr.length === 0) {
+      return "[ ]";
+    }
+    return "[" + arr.map((elm) => {
+      return "0x" + parseInt(elm).toString(16).padStart(2, "0");
+    }).join(", ") + "]";
+  }
+
+</script>
+</body>
+</html>
